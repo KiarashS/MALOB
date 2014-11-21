@@ -1,0 +1,17 @@
+{
+  "geni_resources": [
+    {
+      "geni_urn": "urn:publicid:IDN+ch.geni.net:LoadBalancingRealSDNs_FCUL+sliver+testWire_vlan_ion.internet2.edu-88811", 
+      "geni_error": "", 
+      "geni_status": "ready"
+    }, 
+    {
+      "geni_urn": "urn:publicid:IDN+ch.geni.net:LoadBalancingRealSDNs_FCUL+sliver+testWire_vlan_ion.internet2.edu-88821", 
+      "geni_error": "", 
+      "geni_status": "ready"
+    }
+  ], 
+  "geni_expires": "2014-05-11T10:45:04.000Z", 
+  "geni_urn": "urn:publicid:IDN+ch.geni.net:LoadBalancingRealSDNs_FCUL+slice+testWire", 
+  "geni_status": "ready"
+}
