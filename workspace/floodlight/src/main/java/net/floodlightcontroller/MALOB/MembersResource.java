@@ -14,7 +14,7 @@
  *    under the License.
  **/
 
-package net.floodlightcontroller.loadbalancer;
+package net.floodlightcontroller.MALOB;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -33,29 +33,30 @@ import org.restlet.resource.ServerResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class VipsResource extends ServerResource {
-    protected static Logger log = LoggerFactory.getLogger(VipsResource.class);
+public class MembersResource extends ServerResource {
+
+    protected static Logger log = LoggerFactory.getLogger(MembersResource.class);
     
     @Get("json")
-    public Collection <LBVip> retrieve() {
+    public Collection <LBMember> retrieve() {
         ILoadBalancerService lbs =
                 (ILoadBalancerService)getContext().getAttributes().
                     get(ILoadBalancerService.class.getCanonicalName());
         
-        String vipId = (String) getRequestAttributes().get("vip");
-        if (vipId!=null)
-            return lbs.listVip(vipId);
-        else
-            return lbs.listVips();
+        String memberId = (String) getRequestAttributes().get("member");
+        if (memberId!=null)
+            return lbs.listMember(memberId);
+        else        
+            return lbs.listMembers();               
     }
     
     @Put
     @Post
-    public LBVip createVip(String postData) {
+    public LBMember createMember(String postData) {        
 
-        LBVip vip=null;
+        LBMember member=null;
         try {
-            vip=jsonToVip(postData);
+            member=jsonToMember(postData);
         } catch (IOException e) {
             log.error("Could not parse JSON {}", e.getMessage());
         }
@@ -64,32 +65,29 @@ public class VipsResource extends ServerResource {
                 (ILoadBalancerService)getContext().getAttributes().
                     get(ILoadBalancerService.class.getCanonicalName());
         
-        String vipId = (String) getRequestAttributes().get("vip");
-        if (vipId != null)
-            return lbs.updateVip(vip);
-        else
-            return lbs.createVip(vip);
+        String memberId = (String) getRequestAttributes().get("member");
+        if (memberId != null)
+            return lbs.updateMember(member);
+        else        
+            return lbs.createMember(member);
     }
     
     @Delete
-    public int removeVip() {
+    public int removeMember() {
         
-        String vipId = (String) getRequestAttributes().get("vip");
-        
+        String memberId = (String) getRequestAttributes().get("member");
+               
         ILoadBalancerService lbs =
                 (ILoadBalancerService)getContext().getAttributes().
                     get(ILoadBalancerService.class.getCanonicalName());
 
-        return lbs.removeVip(vipId);
+        return lbs.removeMember(memberId);
     }
 
-    protected LBVip jsonToVip(String json) throws IOException {
-        
-        if (json==null) return null;
-        
+    protected LBMember jsonToMember(String json) throws IOException {
         MappingJsonFactory f = new MappingJsonFactory();
         JsonParser jp;
-        LBVip vip = new LBVip();
+        LBMember member = new LBMember();
         
         try {
             jp = f.createJsonParser(json);
@@ -111,54 +109,41 @@ public class VipsResource extends ServerResource {
             jp.nextToken();
             if (jp.getText().equals("")) 
                 continue;
- 
             if (n.equals("id")) {
-                vip.id = jp.getText();
+                member.id = jp.getText();
                 continue;
-            } 
-            if (n.equals("tenant_id")) {
-                vip.tenantId = jp.getText();
-                continue;
-            } 
-            if (n.equals("name")) {
-                vip.name = jp.getText();
-                continue;
-            }
-            if (n.equals("network_id")) {
-                vip.netId = jp.getText();
-                continue;
-            }
-            if (n.equals("protocol")) {
-                String tmp = jp.getText();
-                if (tmp.equalsIgnoreCase("TCP")) {
-                    vip.protocol = IPv4.PROTOCOL_TCP;
-                } else if (tmp.equalsIgnoreCase("UDP")) {
-                    vip.protocol = IPv4.PROTOCOL_UDP;
-                } else if (tmp.equalsIgnoreCase("ICMP")) {
-                    vip.protocol = IPv4.PROTOCOL_ICMP;
-                } 
-                continue;
-            }
+            } else
             if (n.equals("address")) {
-                vip.address = IPv4.toIPv4Address(jp.getText());
+                member.address = IPv4.toIPv4Address(jp.getText());
                 continue;
-            }
+            } else
             if (n.equals("port")) {
-                vip.port = Short.parseShort(jp.getText());
+                member.port = Short.parseShort(jp.getText());
                 continue;
-            }
+            } else
+            if (n.equals("connection_limit")) {
+                member.connectionLimit = Integer.parseInt(jp.getText());
+                continue;
+            } else
+            if (n.equals("admin_state")) {
+                member.adminState = Short.parseShort(jp.getText());
+                continue;
+            } else
+            if (n.equals("status")) {
+                member.status = Short.parseShort(jp.getText());
+                continue;
+            } else
             if (n.equals("pool_id")) {
-                vip.pools.add(jp.getText());
+                member.poolId = jp.getText();
                 continue;
-            }
+            } 
             
             log.warn("Unrecognized field {} in " +
-                    "parsing Vips", 
+                    "parsing Members", 
                     jp.getText());
         }
         jp.close();
-        
-        return vip;
+
+        return member;
     }
-    
 }

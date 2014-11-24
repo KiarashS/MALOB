@@ -14,7 +14,7 @@
  *    under the License.
  **/
 
-package net.floodlightcontroller.loadbalancer;
+package net.floodlightcontroller.MALOB;
 
 /**
  * Data structure for Load Balancer based on
@@ -23,16 +23,38 @@ package net.floodlightcontroller.loadbalancer;
  * @author KC Wang
  */
 
-public class LBStats {
-    protected int bytesIn;
-    protected int bytesOut;
-    protected int activeConnections;
-    protected int totalConnections;
+public class LBMonitor {
+    protected String id;
+    protected String name;
+    protected short type;
+    protected short delay;
+    protected short timeout;
+    protected short attemptsBeforeDeactivation;
     
-    public LBStats() {
-        bytesIn = 0;
-        bytesOut = 0;
-        activeConnections = 0;
-        totalConnections = 0;
+    protected String netId;
+    protected int address;
+    protected byte protocol;
+    protected short port;
+
+    //protected path??
+    
+    protected short adminState;
+    protected short status;
+
+    public LBMonitor() {
+        id = null;
+        name = null;
+        type = 0;
+        delay = 0;
+        timeout = 0;
+        attemptsBeforeDeactivation = 0;
+        netId = null;
+        address = 0;
+        protocol = 0;
+        port = 0;
+        adminState = 0;
+        status = 0;
+        
     }
+    
 }

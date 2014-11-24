@@ -14,7 +14,9 @@
  *    under the License.
  **/
 
-package net.floodlightcontroller.loadbalancer;
+package net.floodlightcontroller.MALOB;
+
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
  * Data structure for Load Balancer based on
@@ -23,38 +25,43 @@ package net.floodlightcontroller.loadbalancer;
  * @author KC Wang
  */
 
-public class LBMonitor {
+@JsonSerialize(using=LBMemberSerializer.class)
+public class LBMember {
     protected String id;
-    protected String name;
-    protected short type;
-    protected short delay;
-    protected short timeout;
-    protected short attemptsBeforeDeactivation;
-    
-    protected String netId;
     protected int address;
-    protected byte protocol;
     protected short port;
-
-    //protected path??
+    protected String macString;
     
+    protected long responseTime;
+    protected int nConnections;
+    protected double cpuUsage;
+    
+    protected long new_request_rt_impact;
+    public double new_request_cpu_impact;
+    
+    protected int connectionLimit;
     protected short adminState;
     protected short status;
 
-    public LBMonitor() {
-        id = null;
-        name = null;
-        type = 0;
-        delay = 0;
-        timeout = 0;
-        attemptsBeforeDeactivation = 0;
-        netId = null;
+    protected String poolId;
+    protected String vipId;
+    
+    public LBMember() {
+        id = String.valueOf((int) (Math.random()*10000));
         address = 0;
-        protocol = 0;
+        macString = null;
         port = 0;
+        
+        responseTime = 0;
+        nConnections = 0;
+        cpuUsage = 0;
+        new_request_rt_impact = 1;
+        new_request_cpu_impact = 0.5;
+        
+        connectionLimit = 0;
         adminState = 0;
         status = 0;
-        
+        poolId = null;
+        vipId = null;
     }
-    
 }

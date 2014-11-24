@@ -1,4 +1,4 @@
-package net.floodlightcontroller.loadbalancer;
+package net.floodlightcontroller.MALOB;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 

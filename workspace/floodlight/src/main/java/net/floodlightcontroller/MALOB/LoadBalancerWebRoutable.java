@@ -14,7 +14,7 @@
  *    under the License.
  **/
 
-package net.floodlightcontroller.loadbalancer;
+package net.floodlightcontroller.MALOB;
 
 import org.restlet.Context;
 import org.restlet.Restlet;

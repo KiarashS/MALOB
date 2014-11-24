@@ -14,13 +14,13 @@
  *    under the License.
  **/
 
-package net.floodlightcontroller.loadbalancer;
+package net.floodlightcontroller.MALOB;
 
 import java.util.ArrayList;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-import net.floodlightcontroller.loadbalancer.LoadBalancer.IPClient;
+
 import net.floodlightcontroller.util.MACAddress;
 
 /**
@@ -68,7 +68,7 @@ public class LBVip {
         this.proxyMac = MACAddress.valueOf(LB_PROXY_MAC);
     }
     
-    public String pickPool(net.floodlightcontroller.loadbalancer.MALOB.IPClient client) {
+    public String pickPool(net.floodlightcontroller.MALOB.MALOB.IPClient client) {
         // for now, return the first pool; consider different pool choice policy later
         if (pools.size() > 0)
             return pools.get(0);

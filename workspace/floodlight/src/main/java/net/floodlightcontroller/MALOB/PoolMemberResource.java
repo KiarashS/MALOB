@@ -14,7 +14,7 @@
  *    under the License.
  **/
 
-package net.floodlightcontroller.loadbalancer;
+package net.floodlightcontroller.MALOB;
 
 import java.util.Collection;
 

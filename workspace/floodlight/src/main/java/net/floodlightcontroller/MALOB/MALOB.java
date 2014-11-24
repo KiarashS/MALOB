@@ -1,5 +1,5 @@
 
-package net.floodlightcontroller.loadbalancer;
+package net.floodlightcontroller.MALOB;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -95,7 +95,7 @@ import net.floodlightcontroller.util.OFMessageDamper;
 public class MALOB implements IFloodlightModule,
 ILoadBalancerService, IOFMessageListener {
 
-	protected static Logger log = LoggerFactory.getLogger(LoadBalancer.class);
+	protected static Logger log = LoggerFactory.getLogger(MALOB.class);
 
 	// Our dependencies
 	protected IFloodlightProviderService floodlightProvider;

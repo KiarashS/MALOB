@@ -14,7 +14,7 @@
  *    under the License.
  **/
 
-package net.floodlightcontroller.loadbalancer;
+package net.floodlightcontroller.MALOB;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,7 +22,7 @@ import java.util.LinkedList;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-import net.floodlightcontroller.loadbalancer.LoadBalancer.IPClient;
+
 import net.floodlightcontroller.packet.IPv4;
 
 
@@ -65,7 +65,7 @@ public class LBPool {
 		previousMemberIndex = -1;
 	}
 
-	public String pickMember(net.floodlightcontroller.loadbalancer.MALOB.IPClient client) {
+	public String pickMember(net.floodlightcontroller.MALOB.MALOB.IPClient client) {
 		// simple round robin for now; add different lbmethod later
 		if (members.size() > 0) {
 			previousMemberIndex = (previousMemberIndex + 1) % members.size();

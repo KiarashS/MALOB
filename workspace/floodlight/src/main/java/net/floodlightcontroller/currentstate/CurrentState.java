@@ -29,6 +29,7 @@ import net.floodlightcontroller.packet.Data;
 import net.floodlightcontroller.packet.IPv4;
 import net.floodlightcontroller.routing.Link;
 
+import net.floodlightcontroller.MALOB.ILoadBalancerService;
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IFloodlightProviderService;
 import net.floodlightcontroller.core.IOFSwitch;
@@ -42,7 +43,6 @@ import net.floodlightcontroller.devicemanager.IDeviceListener;
 import net.floodlightcontroller.devicemanager.IDeviceService;
 
 import net.floodlightcontroller.linkdiscovery.ILinkDiscoveryService;
-import net.floodlightcontroller.loadbalancer.ILoadBalancerService;
 
 
 import net.floodlightcontroller.routing.IRoutingService;

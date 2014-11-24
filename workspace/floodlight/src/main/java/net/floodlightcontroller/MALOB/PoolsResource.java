@@ -14,7 +14,7 @@
  *    under the License.
  **/
 
-package net.floodlightcontroller.loadbalancer;
+package net.floodlightcontroller.MALOB;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -33,30 +33,30 @@ import org.restlet.resource.ServerResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MembersResource extends ServerResource {
+public class PoolsResource extends ServerResource {
 
-    protected static Logger log = LoggerFactory.getLogger(MembersResource.class);
+    protected static Logger log = LoggerFactory.getLogger(PoolsResource.class);
     
     @Get("json")
-    public Collection <LBMember> retrieve() {
+    public Collection <LBPool> retrieve() {
         ILoadBalancerService lbs =
                 (ILoadBalancerService)getContext().getAttributes().
                     get(ILoadBalancerService.class.getCanonicalName());
         
-        String memberId = (String) getRequestAttributes().get("member");
-        if (memberId!=null)
-            return lbs.listMember(memberId);
+        String poolId = (String) getRequestAttributes().get("pool");
+        if (poolId!=null)
+            return lbs.listPool(poolId);
         else        
-            return lbs.listMembers();               
+            return lbs.listPools();               
     }
     
     @Put
     @Post
-    public LBMember createMember(String postData) {        
+    public LBPool createPool(String postData) {        
 
-        LBMember member=null;
+        LBPool pool=null;
         try {
-            member=jsonToMember(postData);
+            pool=jsonToPool(postData);
         } catch (IOException e) {
             log.error("Could not parse JSON {}", e.getMessage());
         }
@@ -65,29 +65,31 @@ public class MembersResource extends ServerResource {
                 (ILoadBalancerService)getContext().getAttributes().
                     get(ILoadBalancerService.class.getCanonicalName());
         
-        String memberId = (String) getRequestAttributes().get("member");
-        if (memberId != null)
-            return lbs.updateMember(member);
+        String poolId = (String) getRequestAttributes().get("pool");
+        if (poolId != null)
+            return lbs.updatePool(pool);
         else        
-            return lbs.createMember(member);
+            return lbs.createPool(pool);
     }
     
     @Delete
-    public int removeMember() {
+    public int removePool() {
         
-        String memberId = (String) getRequestAttributes().get("member");
+        String poolId = (String) getRequestAttributes().get("pool");
                
         ILoadBalancerService lbs =
                 (ILoadBalancerService)getContext().getAttributes().
                     get(ILoadBalancerService.class.getCanonicalName());
 
-        return lbs.removeMember(memberId);
+        return lbs.removePool(poolId);
     }
 
-    protected LBMember jsonToMember(String json) throws IOException {
+    protected LBPool jsonToPool(String json) throws IOException {
+        if (json==null) return null;
+
         MappingJsonFactory f = new MappingJsonFactory();
         JsonParser jp;
-        LBMember member = new LBMember();
+        LBPool pool = new LBPool();
         
         try {
             jp = f.createJsonParser(json);
@@ -110,40 +112,48 @@ public class MembersResource extends ServerResource {
             if (jp.getText().equals("")) 
                 continue;
             if (n.equals("id")) {
-                member.id = jp.getText();
+                pool.id = jp.getText();
                 continue;
-            } else
-            if (n.equals("address")) {
-                member.address = IPv4.toIPv4Address(jp.getText());
+            } 
+            if (n.equals("tenant_id")) {
+                pool.tenantId = jp.getText();
                 continue;
-            } else
-            if (n.equals("port")) {
-                member.port = Short.parseShort(jp.getText());
+            } 
+            if (n.equals("name")) {
+                pool.name = jp.getText();
                 continue;
-            } else
-            if (n.equals("connection_limit")) {
-                member.connectionLimit = Integer.parseInt(jp.getText());
+            }
+            if (n.equals("network_id")) {
+                pool.netId = jp.getText();
                 continue;
-            } else
-            if (n.equals("admin_state")) {
-                member.adminState = Short.parseShort(jp.getText());
+            }
+            if (n.equals("lb_method")) {
+                pool.lbMethod = Short.parseShort(jp.getText());
                 continue;
-            } else
-            if (n.equals("status")) {
-                member.status = Short.parseShort(jp.getText());
+            }
+            if (n.equals("protocol")) {
+                String tmp = jp.getText();
+                if (tmp.equalsIgnoreCase("TCP")) {
+                    pool.protocol = IPv4.PROTOCOL_TCP;
+                } else if (tmp.equalsIgnoreCase("UDP")) {
+                    pool.protocol = IPv4.PROTOCOL_UDP;
+                } else if (tmp.equalsIgnoreCase("ICMP")) {
+                    pool.protocol = IPv4.PROTOCOL_ICMP;
+                } 
                 continue;
-            } else
-            if (n.equals("pool_id")) {
-                member.poolId = jp.getText();
+            }                    
+            if (n.equals("vip_id")) {
+                pool.vipId = jp.getText();
                 continue;
             } 
             
             log.warn("Unrecognized field {} in " +
-                    "parsing Members", 
+                    "parsing Pools", 
                     jp.getText());
         }
         jp.close();
 
-        return member;
+        return pool;
     }
+    
 }
