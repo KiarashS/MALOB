@@ -5,7 +5,6 @@ net.floodlightcontroller.devicemanager.internal.DeviceManagerImpl
 net.floodlightcontroller.linkdiscovery.internal.LinkDiscoveryManager
 net.floodlightcontroller.topology.TopologyManager
 net.floodlightcontroller.currentstate.CurrentState
-net.floodlightcontroller.random.Random
 net.floodlightcontroller.forwarding.Forwarding
 net.floodlightcontroller.shortestPath.ShortestPath
 net.floodlightcontroller.flowcache.FlowReconcileManager
@@ -25,7 +24,7 @@ net.floodlightcontroller.threadpool.ThreadPool
 net.floodlightcontroller.ui.web.StaticWebRoutable
 net.floodlightcontroller.virtualnetwork.VirtualNetworkFilter
 net.floodlightcontroller.firewall.Firewall
-net.floodlightcontroller.loadbalancer.LoadBalancer
+net.floodlightcontroller.MALOB.MALOB
 org.sdnplatform.sync.internal.SyncManager
 org.sdnplatform.sync.internal.SyncTorture
 net.floodlightcontroller.devicemanager.internal.DefaultEntityClassifier
