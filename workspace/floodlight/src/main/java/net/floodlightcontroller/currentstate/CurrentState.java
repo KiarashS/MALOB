@@ -851,7 +851,13 @@ public class CurrentState implements IFloodlightModule,ICurrentStateService, IDe
 
 	@Override
 	public void deviceIPV4AddrChanged(IDevice device) {
-		// TODO Auto-generated method stub
+	
+		if(!deviceList.contains(device)){
+
+			deviceList.add(device);
+
+			createInstance(device);
+		}
 
 	}
 
