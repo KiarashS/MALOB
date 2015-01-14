@@ -6,7 +6,6 @@ net.floodlightcontroller.linkdiscovery.internal.LinkDiscoveryManager
 net.floodlightcontroller.topology.TopologyManager
 net.floodlightcontroller.currentstate.CurrentState
 net.floodlightcontroller.forwarding.Forwarding
-net.floodlightcontroller.shortestPath.ShortestPath
 net.floodlightcontroller.flowcache.FlowReconcileManager
 net.floodlightcontroller.core.OFMessageFilterManager
 net.floodlightcontroller.staticflowentry.StaticFlowEntryPusher
@@ -28,4 +27,3 @@ net.floodlightcontroller.MALOB.MALOB
 org.sdnplatform.sync.internal.SyncManager
 org.sdnplatform.sync.internal.SyncTorture
 net.floodlightcontroller.devicemanager.internal.DefaultEntityClassifier
-net.floodlightcontroller.pktinhistory.PktInHistory
