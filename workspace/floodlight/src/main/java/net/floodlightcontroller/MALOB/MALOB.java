@@ -1,3 +1,18 @@
+/**
+ *    Copyright 2013, Big Switch Networks, Inc.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License"); you may
+ *    not use this file except in compliance with the License. You may obtain
+ *    a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ *    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ *    License for the specific language governing permissions and limitations
+ *    under the License.
+ **/
 
 package net.floodlightcontroller.MALOB;
 
@@ -14,7 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -55,6 +70,7 @@ import net.floodlightcontroller.currentstate.ICurrentStateService;
 import net.floodlightcontroller.devicemanager.IDevice;
 import net.floodlightcontroller.devicemanager.IDeviceService;
 import net.floodlightcontroller.devicemanager.SwitchPort;
+import net.floodlightcontroller.linkdiscovery.internal.LinkDiscoveryManager;
 import net.floodlightcontroller.packet.ARP;
 import net.floodlightcontroller.packet.Data;
 import net.floodlightcontroller.packet.Ethernet;
@@ -73,24 +89,17 @@ import net.floodlightcontroller.util.MACAddress;
 import net.floodlightcontroller.util.OFMessageDamper;
 
 /**
+ * A simple load balancer module for ping, tcp, and udp flows. This module is accessed 
+ * via a REST API defined close to the OpenStack Quantum LBaaS (Load-balancer-as-a-Service)
+ * v1.0 API proposal. Since the proposal has not been final, no efforts have yet been 
+ * made to confirm compatibility at this time. 
  * 
- * This is an extension from the Loadbalancer Module created by kcwang.
- * The differences are:
- * 
- * Uses 3 different load balancing algorithm:
- * 	- Least CPU usage (CPU): in this algorithm, the server with lowest CPU usage is
-	  selected.
-	  
-	- Shortest Latency-Path Server (SL-PS): selects the server whose path between itself
-	  and the client offers the lowest latency. 
-	   
-	- Highest Throughput-Path Server (HT-PS): selects the server whose path between
-	  itself and the client has the highest throughput.
- * 
- * The load balancer selects the algorithms following its service tables where is possible 
- * to remove or add services using the REST API
+ * Limitations:
+ * - client records and static flows not purged after use, will exhaust switch flow tables over time
+ * - round robin policy among servers based on connections, not traffic volume
+ * - health monitoring feature not implemented yet
  *  
- * @author GoncaloSemedo@FCUL
+ * @author kcwang
  */
 public class MALOB implements IFloodlightModule,
 ILoadBalancerService, IOFMessageListener {
@@ -129,13 +138,13 @@ ILoadBalancerService, IOFMessageListener {
 	protected static int STATUS_IP = IPv4.toIPv4Address("192.168.9.19");
 	protected static int BANDWITH_IP = IPv4.toIPv4Address("192.168.9.29");
 
-	protected static final int ALGO_SL_PS = 1;
-	protected static final int ALGO_HT_PS = 2;
-	protected static final int ALGO_CPU = 3;
-
+	protected static final int ALGO_SPS = 1;
+	protected static final int ALGO_BBPS = 2;
+	protected static final int ALGO_CPU_LAT = 3;
 
 	protected int ALGORITHM = 1;
 
+	private static ReentrantLock lock = new ReentrantLock();
 
 
 
@@ -248,15 +257,13 @@ ILoadBalancerService, IOFMessageListener {
 						client.srcPort = tcp_pkt.getSourcePort();
 						client.targetPort = tcp_pkt.getDestinationPort();
 
-						//Retrieves from the service table which algorithm fits better 
-						//this type of request
 						for(String name : services.keySet()){
 
 							if(services.get(name).port  == client.targetPort){
 								ALGORITHM = services.get(name).algorithm; 
 							}
 						}
-					
+
 
 
 					}
@@ -274,9 +281,9 @@ ILoadBalancerService, IOFMessageListener {
 					LBPool pool = pools.get(vip.pickPool(client));
 
 
-					LBMember member = null;
-					member = pool.cpuUsage(members);
-			
+					LBMember member = pool.cpuUsage(members);
+
+					lock.lock();
 					// for chosen member, check device manager and find and push routes, in both directions                    
 					pushBidirectionalVipRoutes(sw, pi, cntx, client, member);
 
@@ -284,10 +291,9 @@ ILoadBalancerService, IOFMessageListener {
 					pushPacket(pkt, sw, pi.getBufferId(), pi.getInPort(), OFPort.OFPP_TABLE.getValue(),
 							cntx, true);
 
+					lock.unlock();
 
 					return Command.STOP;
-					
-				//If the received packet contains info about the CPU state of the servers
 				}else if(destIpAddress == STATUS_IP){
 
 					int srcIpAddress = ip_pkt.getSourceAddress();
@@ -296,8 +302,6 @@ ILoadBalancerService, IOFMessageListener {
 					handleServerInfo(dataPkt, srcIpAddress);
 
 					return Command.STOP;
-					
-				//If the received packet contains info about the links Throughput
 				}else if(destIpAddress == BANDWITH_IP){
 
 					UDP udpPacket = (UDP) ip_pkt.getPayload();
@@ -312,13 +316,7 @@ ILoadBalancerService, IOFMessageListener {
 		return Command.CONTINUE;
 	}
 
-	/**
-	 * Updates the info about the CPU usage on the servers
-	 * @param dataPkt, data in the UDP packet that have the info 
-	 * about the CPU usage on the servers 
-	 * @param srcIP The IP of the server that has sent the packet
-	 */
-	 	private void handleServerInfo(Data dataPkt, int srcIP) {
+	private void handleServerInfo(Data dataPkt, int srcIP) {
 		// TODO Auto-generated method stub
 		String info = null;
 
@@ -331,6 +329,8 @@ ILoadBalancerService, IOFMessageListener {
 		}
 
 		String [] serverStats = info.split(" ");
+
+
 
 		long rt = Long.parseLong(serverStats[0]);
 		int nConnections = Integer.parseInt(serverStats[1]);
@@ -497,21 +497,25 @@ ILoadBalancerService, IOFMessageListener {
 	 * @param IPClient client
 	 * @param LBMember member
 	 */
-	protected void pushBidirectionalVipRoutes(IOFSwitch sw, OFPacketIn pi, FloodlightContext cntx, IPClient client, LBMember member) {
+	protected void pushBidirectionalVipRoutes(IOFSwitch sw, OFPacketIn pi, FloodlightContext cntx, IPClient client, LBMember member){
 
-		// borrowed code from Forwarding to retrieve src and dst device entities
-		// Check if we have the location of the destination
 		IDevice srcDevice = null;
 		IDevice dstDevice = null;
 
+		Route routeIn = null;
+		Route routeOut = null;
+
 		LBMember theMember = member;
 
-		// retrieve all known devices
-		Collection<? extends IDevice> allDevices = deviceManager.getAllDevices();
+		LinkedList<IDevice>allDevices = currentState.getDeviceList();
+		//	Collection<IDevice> allDevices = (Collection<IDevice>) deviceManager.getAllDevices();
+
+
 
 		for (IDevice d : allDevices) {
-			
+
 			for (int j = 0; j < d.getIPv4Addresses().length; j++) {
+
 				if (srcDevice == null && client.ipAddress == d.getIPv4Addresses()[j]){
 					srcDevice = d;
 
@@ -526,178 +530,96 @@ ILoadBalancerService, IOFMessageListener {
 		}  
 
 		// srcDevice and/or dstDevice is null, no route can be pushed
+
 		if (srcDevice == null || dstDevice == null) return;
 
-		Long srcIsland = topology.getL2DomainId(sw.getId());
+		SwitchPort srcDap = srcDevice.getAttachmentPoints()[0];
+		SwitchPort dstDap = dstDevice.getAttachmentPoints()[0];
 
-		if (srcIsland == null) {
-			log.debug("No openflow island found for source {}/{}", 
-					sw.getStringId(), pi.getInPort());
-			return;
+
+		if(ALGORITHM == ALGO_CPU_LAT ){
+
+			routeIn = 
+					currentState.getRoute(srcDap.getSwitchDPID(),
+							(short)srcDap.getPort(),
+							dstDap.getSwitchDPID(),
+							(short)dstDap.getPort());
+			routeOut = 
+					currentState.getRoute(dstDap.getSwitchDPID(),
+							(short)dstDap.getPort(),
+							srcDap.getSwitchDPID(),
+							(short)srcDap.getPort()); 
+
+
+
+		}else{
+
+
+			ArrayList<Integer> membersIp = new ArrayList<Integer>();
+			for(String id: members.keySet()){                	
+				membersIp.add(members.get(id).address);
+			}
+
+			if(ALGORITHM == ALGO_SPS)
+				routeIn = 
+				currentState.getServerRoute(srcDap.getSwitchDPID(),
+						(short)srcDap.getPort(),
+						dstDap.getSwitchDPID(),
+						(short)dstDap.getPort(),membersIp);
+
+			else
+				routeIn = 
+				currentState.getServerRoutebyBandwith(srcDap.getSwitchDPID(),
+						(short)srcDap.getPort(),
+						dstDap.getSwitchDPID(),
+						(short)dstDap.getPort(),membersIp);
+
+
+			int rSize = routeIn.getPath().size()-1;
+			long dstSw = routeIn.getPath().get(rSize).getNodeId();
+			short dstPort = routeIn.getPath().get(rSize).getPortId();
+			int serverIP = 0;
+
+			for(IDevice device : allDevices){
+
+				for(int i = 0; i< device.getAttachmentPoints().length; i++)
+					if(device.getAttachmentPoints()[i].getSwitchDPID() == dstSw)
+						if(device.getAttachmentPoints()[i].getPort() == dstPort){
+							serverIP = device.getIPv4Addresses()[0];
+						
+						}
+
+
+			}
+
+			for(String id : members.keySet()){
+				if(members.get(id).address == serverIP)
+					theMember = members.get(id);
+			}
+
+			if(ALGORITHM == ALGO_SPS)
+				routeOut = 
+				currentState.getRoute(dstSw, dstPort, srcDap.getSwitchDPID(),
+						(short)srcDap.getPort());
+
+			else
+				routeOut = 
+				currentState.getRouteByBandwith(dstSw, dstPort, srcDap.getSwitchDPID(),
+						(short)srcDap.getPort());
+
+
 		}
 
-		// Validate that we have a destination known on the same island
-		// Validate that the source and destination are not on the same switchport
-		boolean on_same_island = false;
-		boolean on_same_if = false;
-		for (SwitchPort dstDap : dstDevice.getAttachmentPoints()) {
-			long dstSwDpid = dstDap.getSwitchDPID();
-			Long dstIsland = topology.getL2DomainId(dstSwDpid);
-			if ((dstIsland != null) && dstIsland.equals(srcIsland)) {
-				on_same_island = true;
-				if ((sw.getId() == dstSwDpid) &&
-						(pi.getInPort() == dstDap.getPort())) {
-					on_same_if = true;
-				}
-				break;
-			}
+		if (routeIn != null) {
+			pushStaticVipRoute(true, routeIn, client, theMember, sw.getId(),cntx);
 		}
 
-		if (!on_same_island) {
-			// Flood since we don't know the dst device
-			if (log.isTraceEnabled()) {
-				log.trace("No first hop island found for destination " + 
-						"device {}, Action = flooding", dstDevice);
-			}
-			return;
-		}            
-
-		if (on_same_if) {
-			if (log.isTraceEnabled()) {
-				log.trace("Both source and destination are on the same " + 
-						"switch/port {}/{}, Action = NOP", 
-						sw.toString(), pi.getInPort());
-			}
-			return;
+		if (routeOut != null) {
+			pushStaticVipRoute(false, routeOut, client, theMember, sw.getId(),cntx);
 		}
 
-		// Install all the routes where both src and dst have attachment
-		// points.  Since the lists are stored in sorted order we can 
-		// traverse the attachment points in O(m+n) time
-		SwitchPort[] srcDaps = srcDevice.getAttachmentPoints();
-		Arrays.sort(srcDaps, clusterIdComparator);
-		SwitchPort[] dstDaps = dstDevice.getAttachmentPoints();
-		Arrays.sort(dstDaps, clusterIdComparator);
-
-		int iSrcDaps = 0, iDstDaps = 0;
-
-		// following Forwarding's same routing routine, retrieve both in-bound and out-bound routes for
-		// all clusters.
-		while ((iSrcDaps < srcDaps.length) && (iDstDaps < dstDaps.length)) {
-			SwitchPort srcDap = srcDaps[iSrcDaps];
-			SwitchPort dstDap = dstDaps[iDstDaps];
-			Long srcCluster = 
-					topology.getL2DomainId(srcDap.getSwitchDPID());
-			Long dstCluster = 
-					topology.getL2DomainId(dstDap.getSwitchDPID());
-
-			Route routeIn = null;
-			Route routeOut = null;
-
-			int srcVsDest = srcCluster.compareTo(dstCluster);
-			if (srcVsDest == 0) {
-				if (!srcDap.equals(dstDap) && 
-						(srcCluster != null) && 
-						(dstCluster != null)) {
-
-
-
-
-					if(ALGORITHM == ALGO_CPU ){
-
-
-						routeIn = 
-								currentState.getRoute(srcDap.getSwitchDPID(),
-										(short)srcDap.getPort(),
-										dstDap.getSwitchDPID(),
-										(short)dstDap.getPort());
-						routeOut = 
-								currentState.getRoute(dstDap.getSwitchDPID(),
-										(short)dstDap.getPort(),
-										srcDap.getSwitchDPID(),
-										(short)srcDap.getPort()); 
-
-			
-
-				}else{
-
-
-					ArrayList<Integer> membersIp = new ArrayList<Integer>();
-					for(String id: members.keySet()){                	
-						membersIp.add(members.get(id).address);
-					}
-
-					if(ALGORITHM == ALGO_SL_PS)
-						routeIn = 
-						currentState.getServerRoute(srcDap.getSwitchDPID(),
-								(short)srcDap.getPort(),
-								dstDap.getSwitchDPID(),
-								(short)dstDap.getPort(),membersIp);
-					//ALGO_HT_PS
-					else
-						routeIn = 
-						currentState.getServerRoutebyBandwith(srcDap.getSwitchDPID(),
-								(short)srcDap.getPort(),
-								dstDap.getSwitchDPID(),
-								(short)dstDap.getPort(),membersIp);
-
-
-					int rSize = routeIn.getPath().size()-1;
-					long dstSw = routeIn.getPath().get(rSize).getNodeId();
-					short dstPort = routeIn.getPath().get(rSize).getPortId();
-					int serverIP = 0;
-
-					for(IDevice device : allDevices){
-
-						for(int i = 0; i< device.getAttachmentPoints().length; i++)
-							if(device.getAttachmentPoints()[i].getSwitchDPID() == dstSw){
-								serverIP = device.getIPv4Addresses()[0];
-								
-							}
-
-					}
-					//Retrieves the selected member
-					for(String id : members.keySet()){
-						if(members.get(id).address == serverIP)
-							theMember = members.get(id);
-					}
-
-					if(ALGORITHM == ALGO_SL_PS)
-						routeOut = 
-						currentState.getRoute(dstSw, dstPort, srcDap.getSwitchDPID(),
-								(short)srcDap.getPort());
-					//ALGO_HT_PS
-					else
-						routeOut = 
-						currentState.getRouteByBandwith(dstSw, dstPort, srcDap.getSwitchDPID(),
-								(short)srcDap.getPort());
-
-
-				}
-
-					// use static flow entry pusher to push flow mod along in and out path
-					// in: match src client (ip, port), rewrite dest from vip ip/port to member ip/port, forward
-					// out: match dest client (ip, port), rewrite src from member ip/port to vip ip/port, forward
-
-					if (routeIn != null) {
-						pushStaticVipRoute(true, routeIn, client, theMember, sw.getId(),cntx);
-					}
-
-					if (routeOut != null) {
-						pushStaticVipRoute(false, routeOut, client, theMember, sw.getId(),cntx);
-					}
-
-				}
-				iSrcDaps++;
-				iDstDaps++;
-			} else if (srcVsDest < 0) {
-				iSrcDaps++;
-			} else {
-				iDstDaps++;
-			}
-		}
-		return;
 	}
+
 
 	/**
 	 * used to push given route using static flow entry pusher
@@ -724,7 +646,7 @@ ILoadBalancerService, IOFMessageListener {
 				OFFlowMod fm = (OFFlowMod) floodlightProvider.getOFMessageFactory()
 						.getMessage(OFType.FLOW_MOD);
 
-				fm.setIdleTimeout((short) 0);   // infinite
+				fm.setIdleTimeout((short) 400);   // infinite
 				fm.setHardTimeout((short) 0);   // infinite
 				fm.setBufferId(OFPacketOut.BUFFER_ID_NONE);
 				fm.setCommand((short) 0);
@@ -788,7 +710,14 @@ ILoadBalancerService, IOFMessageListener {
 				fm.setMatch(ofMatch);
 
 				sfp.addFlow(entryName, fm, swString);
-				
+				/*	IOFSwitch iofswitch = floodlightProvider.getSwitch(sw);
+
+				   try {
+					messageDamper.write(iofswitch, fm, cntx);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}*/
 
 
 			}
