@@ -119,7 +119,6 @@ public class PathLB {
 				pathLatency = getTotalPathLatency(path);
 				
 				if(pathLatency < bestLat){
-
 					bestLat = pathLatency;
 					bestPath = path;
 
@@ -157,7 +156,6 @@ public class PathLB {
 
 		unVisitedNodes.add(src);
 
-
 		distance.put(src, (long) 0);
 
 
@@ -188,6 +186,7 @@ public class PathLB {
 	private Node getMinimum(LinkedList<Node> unVisitedNodes) {
 
 		Node minimum = null;
+		
 		for (Node sw : unVisitedNodes) {
 			if (minimum == null) {
 				minimum = sw;
@@ -197,6 +196,7 @@ public class PathLB {
 				}
 			}
 		}
+	
 		return minimum;
 	}
 
