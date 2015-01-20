@@ -88,13 +88,13 @@ public class CurrentState implements IFloodlightModule,ICurrentStateService, IDe
 
 	public static ReentrantLock lock = new ReentrantLock();
 
-	
-/**
- * Method used by the controller to add the round-trip time packets of packets 
- * between switches and the controller
- * @param sw: the switch
- * @param end: Time when the round trip ended. 
- */
+
+	/**
+	 * Method used by the controller to add the round-trip time packets of packets 
+	 * between switches and the controller
+	 * @param sw: the switch
+	 * @param end: Time when the round trip ended. 
+	 */
 	public static synchronized void addControllerRTT(long sw, long end){
 
 		long start = switchTS.get(sw);
@@ -113,7 +113,6 @@ public class CurrentState implements IFloodlightModule,ICurrentStateService, IDe
 	private synchronized void createInstance(IDevice newDevice){
 
 		if(deviceList.size()  == 1){
-
 
 			Set<Link> links = linkDiscovery.getLinks().keySet();
 
@@ -152,11 +151,11 @@ public class CurrentState implements IFloodlightModule,ICurrentStateService, IDe
 	}
 
 
-/**
- * discovers all possible routes between two different devices.
- * @param device first device
- * @param newDevice second device
- */
+	/**
+	 * discovers all possible routes between two different devices.
+	 * @param device first device
+	 * @param newDevice second device
+	 */
 	private void  getAllRoutes(IDevice device, IDevice newDevice) {
 		// TODO Auto-generated method stub
 		Node src = null;
@@ -177,12 +176,12 @@ public class CurrentState implements IFloodlightModule,ICurrentStateService, IDe
 	}
 
 
-/**
- * Recursive method to discovers all possible routes between two different devices.
- * @param src The first node
- * @param dst the destination node
- * @param pathsList list of nodes found that belong to a certain path
- */
+	/**
+	 * Recursive method to discovers all possible routes between two different devices.
+	 * @param src The first node
+	 * @param dst the destination node
+	 * @param pathsList list of nodes found that belong to a certain path
+	 */
 	private void discoverPaths(Node src, Node dst, LinkedList<Node> pathsList) {
 		// TODO Auto-generated method stub
 
@@ -327,7 +326,7 @@ public class CurrentState implements IFloodlightModule,ICurrentStateService, IDe
 	}
 
 
-	
+
 	/**
 	 * Adds the round-trip time of packet between 
 	 * switches and the controller
@@ -379,7 +378,7 @@ public class CurrentState implements IFloodlightModule,ICurrentStateService, IDe
 		long dstDPID = 0;
 
 
-		
+
 
 		for(IDevice device : deviceList){
 
@@ -422,11 +421,11 @@ public class CurrentState implements IFloodlightModule,ICurrentStateService, IDe
 
 	}
 
-/**
- * Verifies if a switch have hosts attached
- * @param sw the switch
- * @return true if have hosts attached, false otherwise.
- */
+	/**
+	 * Verifies if a switch have hosts attached
+	 * @param sw the switch
+	 * @return true if have hosts attached, false otherwise.
+	 */
 	private boolean hasAttachement(long sw){
 
 
@@ -498,9 +497,9 @@ public class CurrentState implements IFloodlightModule,ICurrentStateService, IDe
 		return route;
 
 	}
-	
-	
-	
+
+
+
 	@Override
 	public Route getRouteByBandwith(long srcSw, short srcPort, long dstSw, short dstPort){
 
@@ -609,6 +608,8 @@ public class CurrentState implements IFloodlightModule,ICurrentStateService, IDe
 	@Override
 	public Route getServerRoute(long srcSw, short srcPort,long dstSw1,short dstPort1,
 			ArrayList<Integer> members) {
+		
+		
 
 		addNodeControllerRT();
 		pathLB.setLinkLatencies(nodeList);
@@ -621,7 +622,7 @@ public class CurrentState implements IFloodlightModule,ICurrentStateService, IDe
 		for(Node n: nodeList){
 			if(n.getSwitchDPID() == srcSw){
 				src = n;
-				
+
 			}
 		}
 
@@ -821,14 +822,13 @@ public class CurrentState implements IFloodlightModule,ICurrentStateService, IDe
 	@Override
 	public void deviceAdded(IDevice device) {
 		// TODO Auto-generated method stub
-
 		if(device.getIPv4Addresses().length == 0)
 			return;
-
-
+		
 		deviceList.add(device);
 
 		createInstance(device);
+	
 	}
 
 
@@ -848,17 +848,16 @@ public class CurrentState implements IFloodlightModule,ICurrentStateService, IDe
 	}
 
 
-
 	@Override
 	public void deviceIPV4AddrChanged(IDevice device) {
-	
+		// TODO Auto-generated method stub
+		
 		if(!deviceList.contains(device)){
 
 			deviceList.add(device);
 
 			createInstance(device);
 		}
-
 	}
 
 
@@ -866,8 +865,7 @@ public class CurrentState implements IFloodlightModule,ICurrentStateService, IDe
 	@Override
 	public void deviceVlanChanged(IDevice device) {
 		// TODO Auto-generated method stub
-
-	}
+			}
 
 
 
